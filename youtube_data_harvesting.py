@@ -421,6 +421,8 @@ with col4:#to create the dropdown option
     if selected_option:
             Mongodb_input={'Channel_Name.Channel_Name': selected_option}
             x= coll.find(Mongodb_input,{"_id":0})
+            for i in x:
+              import_from_mongodb.append(i)
             display_output(import_from_mongodb)
 
     

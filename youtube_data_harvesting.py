@@ -8,20 +8,21 @@ import json
 import pandas as pd
 
 #youtube client connection
-api_key = 'AIzaSyDpgMYjvU9Z1TffdMGe6MK455iWjcjEK50'
+api_key = 'enter your api key' # https://console.cloud.google.com/apis/credentials?project=youtube-api-project-386610
 youtube = build('youtube', 'v3', developerKey=api_key)
 
 ##MongoDB client connection
-conn1=pymongo.MongoClient("xxxx")#please enter your mongodb shell link 
-db = conn1["xxx"] # please enter your database
-coll = db["xxx"]  # please enter you collection name
+conn1=pymongo.MongoClient("Enter the Mongodb client") # https://cloud.mongodb.com/v2/64338cc513c80f7e8be73db8#/clusters
+db = conn1["Enter the database name"] 
+coll = db["Enter the collection name"]
+
 
 #SQL client connection
-conn=psycopg2.connect(host="localhost",
-                      user="postgres",
-                      password="xxx",#please enter the password
-                      port=5432,
-                      database="")#please enter the database
+conn=psycopg2.connect(host="Enter the host name",
+                      user="Enter the user name",
+                      password="Enter the  password",
+                      port="Enter the port" ,
+                      database="Enter the database name")
 cursor=conn.cursor()
 
 
@@ -320,132 +321,102 @@ def migrate_to_sql(import_from_mongodb):
 
     return
 
-class DuplicateTable(Exception):
-    pass
+
 
 def create_sql_table():
-    try:
         
-        query="create table channel (channel_id varchar(255), channel_name varchar(255),subscription_count int, channel_views int,channel_description text);"
+        query="create table if not exists channel (channel_id varchar(255), channel_name varchar(255),subscription_count int, channel_views int,channel_description text);"
+        cursor.execute(query)
+        conn.commit()
+    
+        query = "create table if not exists playlist (channel_id varchar(255), playlist_id varchar(255))"
+        cursor.execute(query)
+        conn.commit()
 
-        try:
-            cursor.execute(query)
-            conn.commit()
-        except DuplicateTable:
-            pass  # Ignore the exception if the table already exists
+        query = "create table if not exists video (Video_Id varchar(255), playlist_id varchar(255), Video_Name varchar(255), Video_Description text, Published_date date, View_Count int, Like_Count int, Favorite_Count int, Comment_Count int, Duration time, Thumbnail varchar(255), Caption_Status varchar(255))"        
+        cursor.execute(query)
+        conn.commit()
 
-        query = "create table playlist (channel_id varchar(255), playlist_id varchar(255))"
-
-        try:
-            cursor.execute(query)
-            conn.commit()
-        except DuplicateTable:
-            pass  # Ignore the exception if the table already exists
-
-        query = "create table video (Video_Id varchar(255), playlist_id varchar(255), Video_Name varchar(255), Video_Description text, Published_date date, View_Count int, Like_Count int, Favorite_Count int, Comment_Count int, Duration time, Thumbnail varchar(255), Caption_Status varchar(255))"
-
-        try:
-            cursor.execute(query)
-            conn.commit()
-        except DuplicateTable:
-            pass  # Ignore the exception if the table already exists
-
-        query = "create table comment (Comment_Id varchar(255), Video_Id varchar(255), Comment_Text text, Comment_Author varchar(255), comment_published_date date)"
-
-        try:
-            cursor.execute(query)
-            conn.commit()
-        except DuplicateTable:
-            pass  # Ignore the exception if the table already exists
+        query = "create table if not exists comment (Comment_Id varchar(255), Video_Id varchar(255), Comment_Text text, Comment_Author varchar(255), comment_published_date date)"
+        cursor.execute(query)
+        conn.commit()
 
         return
 
-    except Exception as e:
-        print("An error occurred:", str(e))
         
-
 def display_output(Entire_channel_details):
-    with st.container():
-        with st.expander("Channel Details", expanded=True):
-              json_output = json.dumps(Entire_channel_details, indent=4)
-              height = 400
-              st.text_area("", value=json_output, height=height)
-              
-              return
+    with col3:
+        st.text("")
+        with st.container():
+            with st.expander("Channel Details in JSON Format", expanded=True):
+                json_output = json.dumps(Entire_channel_details, indent=4)
+                height = 300
+                st.text_area("", value=json_output, height=height)
+                return
 
 
+
+#Streamlit Heading or title
                 
-st.title("youtube data harvesting")
+st.markdown("<h1 style='text-align: center; color: blue; font-weight: bold; font-family: Arial;'>Youtube Data Harvesting</h1>", unsafe_allow_html=True)
+st.text("")
+st.text("")
 
 
-
-col1,col2,col3 = st.columns([2,1,1])
+col1,col2,col3 = st.columns([1,0.8,4])
 
 with col1:
-    
+    #to get input text
     channel_id = st.text_input("Enter the channel ID", value="")
 
 with col2:
     st.text("")
     st.text("")
-    search_button = st.button("Search:mag:")
+    search_button = st.button("Search:mag:") 
     if search_button:
         try:
             Entire_channel_details = get_complete_channel_details(youtube, channel_id)
-     
+            display_output(Entire_channel_details)
         except KeyError:
             st.warning("Enter the valid channel id")
-with col3:
-    st.text("")
-    st.text("")
-    Export_button = st.button("Export to MongoDB :rocket:")
-if Export_button:
-    try:
-        try:
-            Mongodb_input1 = {'Channel_Name.Channel_id': channel_id}
-            result = coll.find(Mongodb_input1, {"_id": 0, "Channel_Name.Channel_id": 1})
-            x = []
-            for i in result:
-                x.append(i)
-            z = x[0]["Channel_Name"]["Channel_id"]
-
-            if channel_id == z:
-                st.warning("Duplicate channel_id, Data already exists")
-            else:
-                pass
-        except IndexError:
-            result_dict = get_complete_channel_details(youtube, channel_id)
-            coll.insert_many([result_dict])
-            st.warning("Data successfully exported to MongoDB")
-    except (KeyError,IndexError):
-        st.warning("Please search the channel id before exporting to mongodb")
-
- 
           
-col4,col5, = st.columns([1,3])
+col4,col5,col6 = st.columns([1,3,1])
 
-with col4:
+with col6:# to export data to Mongo DB
+    st.text("")
+    st.text("")
+    Export_button = st.button("Export to MongoDB:rocket:")
+   
+    if Export_button:
+        try:
+            try:
+                Mongodb_input1 = {'Channel_Name.Channel_id': channel_id}
+                result = coll.find(Mongodb_input1, {"_id": 0, "Channel_Name.Channel_id": 1})
+                x = []
+                for i in result:
+                    x.append(i)
+                z = x[0]["Channel_Name"]["Channel_id"]
 
-    options = [""]
+                if channel_id == z:
+                    st.warning("Duplicate channel_id, Data already exists")
+                else:
+                    pass
+            except IndexError:
+                result_dict = get_complete_channel_details(youtube, channel_id)
+                display_output(result_dict)
+                coll.insert_many([result_dict])
+                st.warning("Data successfully exported to MongoDB")
+        except (KeyError,IndexError):
+            st.warning("Please search the channel id before exporting to mongodb")
+
+with col4:#to create the dropdown option
+    options=[''] #initially created empty list with empty string for default blank
+    #to add channel Name to dropdown options From Mongo DB
     query_result = coll.find({}, {"_id": 0, "Channel_Name.Channel_Name": 1})
     for document in query_result:
-            options.append(document["Channel_Name"]["Channel_Name"])
-
-    if search_button and channel_id:
-        try:
-            Entire_channel_details = get_complete_channel_details(youtube, channel_id)
-            x = Entire_channel_details["Channel_Name"]["Channel_Name"]
-            if x not in options:
-                options.append(x)
-        except KeyError:
-           pass
-    
-# Update the options in session_state
-    st.session_state.options = options
-
-
-# Display the filtered options in the dropdown
-    selected_option = st.selectbox("Select the Channel Name", options)
+        options.append(document["Channel_Name"]["Channel_Name"])
+    #Display the filtered options in the dropdown
+    selected_option = st.selectbox("Select the Channel Name",options)
     import_from_mongodb=[]
     if selected_option:
             Mongodb_input={'Channel_Name.Channel_Name': selected_option}
@@ -454,17 +425,22 @@ with col4:
             for i in x:
                 import_from_mongodb.append(i)
                 found_documents = True
+            display_output(import_from_mongodb)
             if not found_documents:
-                st.warning("No channel details found for the selected channel name.")
-        
+                st.warning("No channel details found for the selected channel name from MongoDB.")
+    
+with col5: #migrating data's to sql table 
+    st.text("")
+    st.text("")           
     migrate_button = st.button("Migrate to SQL:rocket:")
     if migrate_button:
         try:
+        
             try:
                 get_SQL_table=create_sql_table()
                 conn.commit()
-                query = f"SELECT Channel_name FROM channel WHERE Channel_name = '{selected_option}';"
-                cursor.execute(query)
+                query = "SELECT Channel_name FROM channel WHERE Channel_name = %s;"
+                cursor.execute(query, (selected_option,))
                 results = cursor.fetchall()
                 df = pd.DataFrame(results, columns=[desc[0] for desc in cursor.description])
                 if selected_option == df.channel_name[0]:
@@ -476,13 +452,9 @@ with col4:
                 st.warning("Data successfully migrated to SQL")
         except IndexError:
             st.warning("Please select the channel name for migrating to SQL")
-            
-with col5:
-    if search_button and channel_id:
-        display_output(Entire_channel_details)
-    if  selected_option:
-        display_output(import_from_mongodb)
+                  
     
+
 
 questions = [
     "",
@@ -524,10 +496,8 @@ if selected_question:
     conn.commit()
     cursor.execute(query)
     results = cursor.fetchall()
-    
     # Convert the results to a DataFrame
     df = pd.DataFrame(results, columns=[desc[0] for desc in cursor.description])
-
     # Display the table in Streamlit
     st.subheader(selected_question)
     st.dataframe(df)

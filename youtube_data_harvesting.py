@@ -421,13 +421,8 @@ with col4:#to create the dropdown option
     if selected_option:
             Mongodb_input={'Channel_Name.Channel_Name': selected_option}
             x= coll.find(Mongodb_input,{"_id":0})
-            found_documents = False
-            for i in x:
-                import_from_mongodb.append(i)
-                found_documents = True
             display_output(import_from_mongodb)
-            if not found_documents:
-                st.warning("No channel details found for the selected channel name from MongoDB.")
+
     
 with col5: #migrating data's to sql table 
     st.text("")
